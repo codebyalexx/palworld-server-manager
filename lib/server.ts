@@ -8,7 +8,7 @@ const CWD = process.cwd();
 
 export class Server {
   status: string = "offline";
-  progress: number = 0;
+  players: number = 0;
   updateProcess: ChildProcess | null = null; // Child process for updating the server
   runProcess: ChildProcess | null = null; // Child process for running the server
 
@@ -30,7 +30,7 @@ export class Server {
       setInterval(() => {
         this.checkServerEmpty();
       }, 60 * 1000);
-    }, 5 * 60 * 1000);
+    }, 3 * 60 * 1000);
   }
 
   getStatus() {
@@ -83,8 +83,8 @@ export class Server {
             chalk.red(`SteamCMD process exited with code ${code}.`)
           );
           this.status = "offline";
-          reject(new Error(`SteamCMD process failed with code ${code}`));
           sendDiscordMsg("Une erreur s'est produite lors de la mise a jour?");
+          reject(new Error(`SteamCMD process failed with code ${code}`));
         }
       });
     });
@@ -105,12 +105,10 @@ export class Server {
 
     this.runProcess.stdout.on("data", (data) => {
       console.log(chalk.green(`[Server] ${data}`));
-      sendDiscordMsg(`[Serveur] ${data}`);
     });
 
     this.runProcess.stderr.on("data", (data) => {
       console.error(chalk.red(`[Server ERROR] ${data}`));
-      sendDiscordMsg(`[Serveur ERREUR] ${data}`);
     });
 
     this.runProcess.on("close", (code) => {
@@ -131,10 +129,7 @@ export class Server {
       sendDiscordMsg("Arret du serveur en cours...");
 
       // Terminate the process
-      this.runProcess.stdout?.destroy();
-      this.runProcess.stdin?.destroy();
-      this.runProcess.stderr?.destroy();
-      this.runProcess.kill("SIGINT");
+      this.runProcess.kill();
 
       // Wait briefly to ensure the process is stopped
       setTimeout(() => {

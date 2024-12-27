@@ -1,6 +1,8 @@
 import chalk from "chalk";
 import { ChildProcess, spawn } from "child_process";
 
+const CWD = "./palworld_server";
+
 export class Server {
   status: string = "offline";
   progress: number = 0;
@@ -43,7 +45,7 @@ export class Server {
           "+quit", // Quit SteamCMD after completing the update
         ],
         {
-          cwd: "./steam/",
+          cwd: CWD,
         }
       );
 
@@ -76,8 +78,8 @@ export class Server {
     this.status = "starting";
     console.log(chalk.cyan("Starting Palworld server..."));
 
-    this.runProcess = spawn("./PalServer.exe", [], {
-      cwd: "./steam/palworld_server",
+    this.runProcess = spawn("./PalServer.sh", [], {
+      cwd: CWD,
     });
 
     this.status = "online";

@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import { ChildProcess, spawn } from "child_process";
+import { existsSync, mkdirSync } from "fs";
 
 const CWD = "./palworld_server";
 
@@ -15,6 +16,9 @@ export class Server {
 
   async init() {
     console.log(chalk.yellow("Initializing game server..."));
+
+    if (!existsSync(CWD)) mkdirSync(CWD);
+
     await this.updatePalworldServer().then(async () => {
       await this.runServer();
     });

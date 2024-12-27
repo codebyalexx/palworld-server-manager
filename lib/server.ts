@@ -162,7 +162,12 @@ export class Server {
       },
     });
 
-    if (!res.ok) const data: any = await res.json();
+    if (!res.ok) {
+      console.error("Server cannot reach pal api");
+      return;
+    }
+
+    const data: any = await res.json();
     const players: any[] = data.players || [];
 
     if (players.length === 0) {

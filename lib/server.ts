@@ -2,7 +2,7 @@ import chalk from "chalk";
 import { ChildProcess, spawn } from "child_process";
 import { existsSync, mkdirSync } from "fs";
 
-const CWD = "./palworld_server";
+const CWD = process.cwd();
 
 export class Server {
   status: string = "offline";
@@ -17,7 +17,7 @@ export class Server {
   async init() {
     console.log(chalk.yellow("Initializing game server..."));
 
-    if (!existsSync(CWD)) mkdirSync(CWD);
+    if (!existsSync("./palworld_server")) mkdirSync("./palworld_server");
 
     await this.updatePalworldServer().then(async () => {
       await this.runServer();
@@ -40,6 +40,8 @@ export class Server {
       this.updateProcess = spawn(
         "steamcmd",
         [
+          "+force_install_dir",
+          "./palworld_server", // Set the installation directory
           "+login",
           "anonymous", // Login as an anonymous user
           "+app_update",

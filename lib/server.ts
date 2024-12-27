@@ -1,6 +1,7 @@
 import chalk from "chalk";
 import { ChildProcess, spawn } from "child_process";
 import { existsSync, mkdirSync } from "fs";
+import { join } from "path";
 
 const CWD = process.cwd();
 
@@ -41,7 +42,7 @@ export class Server {
         "steamcmd",
         [
           "+force_install_dir",
-          "./palworld_server", // Set the installation directory
+          join(CWD, "palworld_server"), // Set the installation directory
           "+login",
           "anonymous", // Login as an anonymous user
           "+app_update",
@@ -82,7 +83,7 @@ export class Server {
     this.status = "starting";
     console.log(chalk.cyan("Starting Palworld server..."));
 
-    this.runProcess = spawn("./PalServer.sh", [], {
+    this.runProcess = spawn("./palworld_server/PalServer.sh", [], {
       cwd: CWD,
     });
 

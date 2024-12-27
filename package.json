@@ -6,10 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "serve": "node server.js"
+    "lint": "next lint"
   },
   "dependencies": {
+    "chalk": "^5.4.1",
     "express": "^4.21.2",
     "next": "15.1.3",
     "react": "^19.0.0",

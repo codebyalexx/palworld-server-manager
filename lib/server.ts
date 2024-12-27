@@ -42,8 +42,6 @@ export class Server {
         [
           "+login",
           "anonymous", // Login as an anonymous user
-          "+force_install_dir",
-          "./palworld_server", // Set the installation directory
           "+app_update",
           "2394010", // Replace '1234567' with the actual app ID for Palworld
           "+quit", // Quit SteamCMD after completing the update

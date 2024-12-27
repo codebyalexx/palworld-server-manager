@@ -1,7 +1,8 @@
 import chalk from "chalk";
-import { ChildProcess, spawn } from "child_process";
+import { ChildProcess, exec, spawn } from "child_process";
 import { existsSync, mkdirSync } from "fs";
 import { join } from "path";
+import { sendDiscordMsg } from "./utils";
 
 const CWD = process.cwd();
 
@@ -17,12 +18,19 @@ export class Server {
 
   async init() {
     console.log(chalk.yellow("Initializing game server..."));
+    sendDiscordMsg("Initialisation du serveur en cours");
 
     if (!existsSync("./palworld_server")) mkdirSync("./palworld_server");
 
     await this.updatePalworldServer().then(async () => {
       await this.runServer();
     });
+
+    setTimeout(() => {
+      setInterval(() => {
+        this.checkServerEmpty();
+      }, 60 * 1000);
+    }, 5 * 60 * 1000);
   }
 
   getStatus() {
@@ -32,6 +40,7 @@ export class Server {
   updatePalworldServer() {
     return new Promise<void>((resolve, reject) => {
       this.status = "updating";
+      sendDiscordMsg("Mise a jours en cours...");
 
       console.log(
         chalk.cyan("Starting Palworld server update using SteamCMD...")
@@ -67,6 +76,7 @@ export class Server {
           console.log(
             chalk.green("Palworld server update completed successfully.")
           );
+          sendDiscordMsg("Mise a jours terminee");
           resolve();
         } else {
           console.error(
@@ -74,6 +84,7 @@ export class Server {
           );
           this.status = "offline";
           reject(new Error(`SteamCMD process failed with code ${code}`));
+          sendDiscordMsg("Une erreur s'est produite lors de la mise a jour?");
         }
       });
     });
@@ -82,6 +93,7 @@ export class Server {
   runServer() {
     this.status = "starting";
     console.log(chalk.cyan("Starting Palworld server..."));
+    sendDiscordMsg("Demarrage du serveur Palworld...");
 
     this.runProcess = spawn("./palworld_server/PalServer.sh", [], {
       cwd: CWD,
@@ -89,21 +101,26 @@ export class Server {
 
     this.status = "online";
     console.log(chalk.green("Server is now online."));
+    sendDiscordMsg("Le serveur est desormais en ligne !");
 
     this.runProcess.stdout.on("data", (data) => {
       console.log(chalk.green(`[Server] ${data}`));
+      sendDiscordMsg(`[Serveur] ${data}`);
     });
 
     this.runProcess.stderr.on("data", (data) => {
       console.error(chalk.red(`[Server ERROR] ${data}`));
+      sendDiscordMsg(`[Serveur ERREUR] ${data}`);
     });
 
     this.runProcess.on("close", (code) => {
       this.status = "offline";
       if (code === 0) {
         console.log(chalk.yellow("Server stopped gracefully."));
+        sendDiscordMsg("Le serveur s'est arrete normalement");
       } else {
         console.error(chalk.red(`Server process exited with code ${code}.`));
+        sendDiscordMsg("Le serveur s'est arrete avec le code " + code);
       }
     });
   }
@@ -111,6 +128,7 @@ export class Server {
   stopServer() {
     if (this.runProcess) {
       console.log(chalk.cyan("Stopping Palworld server..."));
+      sendDiscordMsg("Arret du serveur en cours...");
 
       // Terminate the process
       this.runProcess.stdout?.destroy();
@@ -130,6 +148,41 @@ export class Server {
       }, 1000);
     } else {
       console.log(chalk.red("No running server process found to stop."));
+      sendDiscordMsg("Le serveur ne veut pas se stopper ce batard");
+    }
+  }
+
+  async checkServerEmpty() {
+    const basicAuth = Buffer.from(`admin:Caca2Garf`).toString("base64");
+
+    const res = await fetch("http://127.0.0.1:8212/v1/api/players", {
+      method: "GET",
+      headers: {
+        Authorization: `Basic ${basicAuth}`,
+      },
+    });
+
+    if (!res.ok) const data: any = await res.json();
+    const players: any[] = data.players || [];
+
+    if (players.length === 0) {
+      sendDiscordMsg("Le est vide, tentative d'arret...");
+      this.stopServer();
+      setTimeout(() => {
+        exec("sudo shutdown -h now", (err, stdout, stderr) => {
+          if (err) {
+            console.error(`Failed to shut down server: ${stderr}`);
+            sendDiscordMsg(
+              "Le serveur a essaye de s'eteindre mais une erreur s'est produite"
+            );
+          } else {
+            console.log(`Server is shutting down: ${stdout}`);
+            sendDiscordMsg(
+              "Le serveur s'eteint physiquement. Il faudra passer par la passerelle pour le demarrer"
+            );
+          }
+        });
+      }, 10 * 1000);
     }
   }
 }

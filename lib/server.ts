@@ -39,14 +39,16 @@ export class Server {
 
   updatePalworldServer() {
     return new Promise<void>((resolve, reject) => {
+      /* It's canceling if server already updated */
+
+      /* It's logging and changing the status */
       this.status = "updating";
       sendDiscordMsg("Mise a jours en cours...");
-
       console.log(
         chalk.cyan("Starting Palworld server update using SteamCMD...")
       );
 
-      // Spawn a child process to execute SteamCMD commands
+      /* It's creating steamcmd process */
       this.updateProcess = spawn(
         "steamcmd",
         [
@@ -63,22 +65,27 @@ export class Server {
         }
       );
 
-      this.updateProcess.stdout.on("data", (data: any) => {
+      /* It's listening to steamcmd logs */
+      this.updateProcess.stdout?.on("data", (data) => {
         console.log(chalk.green(`[SteamCMD] ${data}`));
       });
 
-      this.updateProcess.stderr.on("data", (data: any) => {
+      /* It's listening to steamcmd errors */
+      this.updateProcess.stderr?.on("data", (data) => {
         console.error(chalk.red(`[SteamCMD ERROR] ${data}`));
       });
 
-      this.updateProcess.on("close", (code: any) => {
+      /* It's waiting steamCMD to close */
+      this.updateProcess.on("close", (code) => {
         if (code === 0 || code === 7) {
+          /* It's handling steamcmd success and logging */
           console.log(
             chalk.green("Palworld server update completed successfully.")
           );
           sendDiscordMsg("Mise a jours terminee");
           resolve();
         } else {
+          /* It's handling steamCMD errors and logging */
           console.error(
             chalk.red(`SteamCMD process exited with code ${code}.`)
           );
@@ -91,6 +98,9 @@ export class Server {
   }
 
   runServer() {
+    /* It's canceling if server is already running */
+    if (this.status === "online") return;
+
     this.status = "starting";
     console.log(chalk.cyan("Starting Palworld server..."));
     sendDiscordMsg("Demarrage du serveur Palworld...");
@@ -99,15 +109,16 @@ export class Server {
       cwd: CWD,
     });
 
-    this.status = "online";
-    console.log(chalk.green("Server is now online."));
-    sendDiscordMsg("Le serveur est desormais en ligne !");
-
-    this.runProcess.stdout.on("data", (data) => {
+    this.runProcess.stdout?.on("data", (data) => {
       console.log(chalk.green(`[Server] ${data}`));
+      if (data.includes("Running Palworld")) {
+        this.status = "online";
+        console.log(chalk.green("Server is now online."));
+        sendDiscordMsg("Le serveur est desormais en ligne !");
+      }
     });
 
-    this.runProcess.stderr.on("data", (data) => {
+    this.runProcess.stderr?.on("data", (data) => {
       console.error(chalk.red(`[Server ERROR] ${data}`));
     });
 
@@ -123,27 +134,43 @@ export class Server {
     });
   }
 
-  stopServer() {
+  async stopServer() {
+    if (this.status === "offline") return;
+
     if (this.runProcess) {
       console.log(chalk.cyan("Stopping Palworld server..."));
       sendDiscordMsg("Arret du serveur en cours...");
 
-      // Terminate the process
-      this.runProcess.kill();
+      const basicAuth = Buffer.from(`admin:Caca2Garf`).toString("base64");
 
-      // Wait briefly to ensure the process is stopped
-      setTimeout(() => {
-        if (this.runProcess && !this.runProcess.killed) {
-          console.error(chalk.red("Failed to stop the server process."));
-        } else {
-          console.log(chalk.yellow("Server has been stopped successfully."));
-          this.runProcess = null; // Clear the run process reference
-          this.status = "offline"; // Update the server status
-        }
-      }, 1000);
+      const res = await fetch("http://127.0.0.1:8212/v1/api/shutdown", {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${basicAuth}`,
+        },
+        body: JSON.stringify({
+          waittime: 5,
+          message: "Le serveur va s'arreter dans 5 secondes",
+        }),
+      });
+
+      if (!res.ok) {
+        console.error("Server cannot reach pal api");
+        sendDiscordMsg("Impossible d'eteindre le serveur via L'API");
+        return;
+      } else {
+        sendDiscordMsg(
+          "Signal d'arret OK, le serveur s'eteindra dans quelques instants"
+        );
+        setTimeout(() => {
+          this.runProcess?.kill();
+        }, 15000);
+      }
     } else {
       console.log(chalk.red("No running server process found to stop."));
-      sendDiscordMsg("Le serveur ne veut pas se stopper ce batard");
+      sendDiscordMsg(
+        "Le serveur n'est juste pas en ligne donc il ne va pas se stopper?"
+      );
     }
   }
 
@@ -162,7 +189,9 @@ export class Server {
       return;
     }
 
+    // eslint-disable-next-line
     const data: any = await res.json();
+    // eslint-disable-next-line
     const players: any[] = data.players || [];
 
     if (players.length === 0) {
@@ -188,9 +217,12 @@ export class Server {
 }
 
 export async function getServer() {
+  // eslint-disable-next-line
   if (!(global as any).SERVER) {
+    // eslint-disable-next-line
     (global as any).SERVER = new Server();
   }
 
+  // eslint-disable-next-line
   return (global as any).SERVER as Server;
 }

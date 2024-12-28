@@ -163,7 +163,11 @@ export class Server {
           "Signal d'arret OK, le serveur s'eteindra dans quelques instants"
         );
         setTimeout(() => {
-          this.runProcess?.kill();
+          this.runProcess?.kill("SIGINT");
+          this.runProcess = null;
+          this.status = "offline";
+          console.log("server is now offline");
+          sendDiscordMsg("Le serveur est maintenant offline?");
         }, 15000);
       }
     } else {
